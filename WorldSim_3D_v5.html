@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#101418">
+<link rel="manifest" href="manifest.json">
+<title>World Sim 3D v5 — Indian Open World (Pi-Lite)</title>
+<style>
+  html,body{margin:0;padding:0;overflow:hidden;background:#000;font-family:Arial,sans-serif;color:#fff;user-select:none;-webkit-user-select:none;touch-action:none;overscroll-behavior:none}
+  canvas{display:block;outline:none}
+  #hud{position:fixed;top:8px;left:8px;z-index:10;background:rgba(0,0,0,.5);padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.4;backdrop-filter:blur(4px);min-width:160px;pointer-events:none}
+  #hud b{color:#ffd24a}
+  #wanted{color:#ff5252;letter-spacing:2px}
+  #help{position:fixed;bottom:6px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:6px;font-size:10px;max-width:90vw;text-align:center;opacity:.8;pointer-events:none}
+  #msg{position:fixed;top:18%;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);padding:10px 18px;border-radius:8px;font-size:14px;display:none;z-index:20;text-align:center;max-width:80vw}
+  #crosshair{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9;pointer-events:none;font-size:18px;color:#fff;text-shadow:0 0 4px #000;font-weight:bold;line-height:1;opacity:.7}
+  #flash{position:fixed;inset:0;background:#f00;opacity:0;pointer-events:none;z-index:8;transition:opacity .15s}
+  #vignette{position:fixed;inset:0;pointer-events:none;z-index:7;box-shadow:inset 0 0 180px rgba(0,0,0,.55);opacity:.4}
+  #slowmo{position:fixed;inset:0;pointer-events:none;z-index:7;background:radial-gradient(circle,transparent 40%,rgba(80,120,255,.25));opacity:0;transition:opacity .15s}
+  #grain{position:fixed;inset:0;pointer-events:none;z-index:7;opacity:0;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/></svg>")}
+  #minimap{position:fixed;top:8px;right:8px;z-index:10;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.5);background:rgba(0,0,0,.5);overflow:hidden}
+  #minimap canvas{width:100%;height:100%;display:block}
+  #loading{position:fixed;inset:0;background:#0a0d12;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:18px;z-index:99;text-align:center;padding:20px}
+  #loading .spin{width:40px;height:40px;border:3px solid #333;border-top-color:#ffd24a;border-radius:50%;animation:spin 1s linear infinite;margin:14px auto}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* Touch controls */
+  #touch{position:fixed;inset:0;z-index:15;pointer-events:none}
+  #touch.show *{pointer-events:auto}
+  #stick{position:fixed;left:18px;bottom:18px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25);touch-action:none}
+  #stickKnob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:rgba(255,255,255,.4);border:2px solid rgba(255,255,255,.6)}
+  #look{position:fixed;right:0;top:0;width:55%;height:100%;touch-action:none;background:transparent}
+  .btn{position:fixed;width:60px;height:60px;border-radius:50%;background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1;-webkit-tap-highlight-color:transparent}
+  .btn:active{background:rgba(255,210,74,.5)}
+  #bA{right:18px;bottom:24px}
+  #bB{right:90px;bottom:60px}
+  #bC{right:18px;bottom:100px}
+  #bD{right:90px;bottom:140px}
+  #bE{right:18px;bottom:180px}
+  #bF{right:160px;bottom:24px;width:50px;height:50px;font-size:11px}
+  #bG{right:160px;bottom:84px;width:50px;height:50px;font-size:11px}
+  #bH{right:160px;bottom:144px;width:50px;height:50px;font-size:11px}
+  #topbar{position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:6px}
+  .topbtn{background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer}
+  #phone{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:300px;max-width:90vw;background:#1a1f25;border:2px solid #444;border-radius:14px;padding:14px;z-index:30;display:none;font-size:13px}
+  #phone h3{margin:0 0 8px;color:#ffd24a;font-size:14px}
+  #phone .row{padding:6px 8px;border-bottom:1px solid #2a2f35;cursor:pointer;border-radius:4px}
+  #phone .row:hover{background:#2a2f35}
+  #phone button{margin-top:8px;background:#ffd24a;color:#000;border:0;padding:6px 10px;border-radius:6px;cursor:pointer;font-weight:bold}
+  #fps{position:fixed;bottom:6px;right:6px;z-index:10;font-size:10px;color:#0f0;background:rgba(0,0,0,.4);padding:2px 6px;border-radius:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div id="loading"><div>WorldSim 3D v5</div><div class="spin"></div><div id="loadTxt" style="font-size:12px;opacity:.7">Loading…</div></div>
+
+<div id="hud">
+  <div>❤ HP <b id="hp">100</b> | ⛽ <b id="fuel">--</b></div>
+  <div>💰 ₹<b id="money">500</b> | 🔫 <b id="ammo">12</b></div>
+  <div>⭐ <span id="wanted">—</span></div>
+  <div><b id="time">12:00</b> | <b id="weather">Clear</b></div>
+  <div id="vehInfo" style="display:none">🚗 <b id="vehName">—</b></div>
+</div>
+
+<div id="topbar">
+  <button class="topbtn" id="btnPhone">📱</button>
+  <button class="topbtn" id="btnPhoto">📷</button>
+  <button class="topbtn" id="btnSave">💾</button>
+  <button class="topbtn" id="btnMode">🖥️</button>
+</div>
+
+<div id="minimap"><canvas id="mm" width="180" height="180"></canvas></div>
+<div id="crosshair">+</div>
+<div id="flash"></div>
+<div id="vignette"></div>
+<div id="slowmo"></div>
+<div id="grain"></div>
+<div id="msg"></div>
+<div id="fps">--</div>
+<div id="help">F2 desktop · F1 help · ESC menu</div>
+
+<div id="touch" class="show">
+  <div id="stick"><div id="stickKnob"></div></div>
+  <div id="look"></div>
+  <div class="btn" id="bA">FIRE</div>
+  <div class="btn" id="bB">JUMP</div>
+  <div class="btn" id="bC">USE</div>
+  <div class="btn" id="bD">RUN</div>
+  <div class="btn" id="bE">SLO</div>
+  <div class="btn" id="bF">HORN</div>
+  <div class="btn" id="bG">LITE</div>
+  <div class="btn" id="bH">SWAP</div>
+</div>
+
+<div id="phone">
+  <h3>📱 Phone</h3>
+  <div class="row" data-act="missions">📋 Missions</div>
+  <div class="row" data-act="save">💾 Save Game</div>
+  <div class="row" data-act="load">📂 Load Game</div>
+  <div class="row" data-act="settings">⚙️ Settings (Graphics)</div>
+  <div class="row" data-act="radio">📻 Radio</div>
+  <div class="row" data-act="help">❓ Help</div>
+  <button id="phoneClose">Close</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+/* =======================================================================
+   WorldSim 3D v5 — Indian Open World (Pi-Lite)
+   Mobile-first, low-end optimized, single-file game (uses three.js CDN).
+   ======================================================================= */
+'use strict';
+
+// ---------- Service worker ----------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+// ---------- Utility ----------
+const $ = (id) => document.getElementById(id);
+const rand = (a,b) => a + Math.random()*(b-a);
+const irand = (a,b) => Math.floor(rand(a,b+1));
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const dist2 = (a,b) => { const dx=a.x-b.x, dz=a.z-b.z; return dx*dx+dz*dz; };
+function showMsg(t, ms=1800){ const m=$('msg'); m.textContent=t; m.style.display='block'; clearTimeout(showMsg._t); showMsg._t=setTimeout(()=>m.style.display='none',ms); }
+
+// ---------- Detect mobile ----------
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints>0;
+let DESKTOP_MODE = !isTouch;
+function applyMode(){
+  $('touch').classList.toggle('show', !DESKTOP_MODE);
+  $('crosshair').style.display = DESKTOP_MODE ? 'block':'block';
+  $('btnMode').textContent = DESKTOP_MODE ? '📱' : '🖥️';
+}
+applyMode();
+
+// ---------- Settings / quality ----------
+const Q = {
+  preset: 'auto',          // low / med / high / ultra / auto
+  pixelRatio: Math.min(window.devicePixelRatio||1, 1.25),
+  shadows: false,
+  fog: true,
+  drawDist: 220,
+  npcMax: 18,
+  carMax: 14,
+  particles: true,
+  motionBlur: false
+};
+function setPreset(p){
+  Q.preset = p;
+  if(p==='low'){ Q.pixelRatio=0.6; Q.shadows=false; Q.drawDist=140; Q.npcMax=10; Q.carMax=8; Q.particles=false; }
+  if(p==='med'){ Q.pixelRatio=0.85; Q.shadows=false; Q.drawDist=200; Q.npcMax=18; Q.carMax=14; Q.particles=true; }
+  if(p==='high'){ Q.pixelRatio=1.0; Q.shadows=true; Q.drawDist=280; Q.npcMax=26; Q.carMax=20; Q.particles=true; }
+  if(p==='ultra'){ Q.pixelRatio=Math.min(window.devicePixelRatio||1,1.5); Q.shadows=true; Q.drawDist=380; Q.npcMax=36; Q.carMax=28; Q.particles=true; }
+  applyQuality();
+}
+function applyQuality(){
+  if(!renderer) return;
+  renderer.setPixelRatio(Q.pixelRatio);
+  renderer.shadowMap.enabled = Q.shadows;
+  if(scene && scene.fog){ scene.fog.far = Q.drawDist; }
+  camera.far = Q.drawDist+80; camera.updateProjectionMatrix();
+}
+
+// ---------- Three.js setup ----------
+const renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'low-power' });
+renderer.setPixelRatio(Q.pixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x88a5c0);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x88a5c0, 60, Q.drawDist);
+
+const camera = new THREE.PerspectiveCamera(72, window.innerWidth/window.innerHeight, 0.1, Q.drawDist+80);
+camera.position.set(0, 1.7, 5);
+
+window.addEventListener('resize', ()=>{
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ---------- Lighting ----------
+const hemi = new THREE.HemisphereLight(0xffffff, 0x335577, 0.8);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffe6b0, 1.0);
+sun.position.set(60,100,40);
+scene.add(sun);
+const ambient = new THREE.AmbientLight(0x222233, 0.4);
+scene.add(ambient);
+
+// ---------- World constants ----------
+const WORLD = 600;          // half-size
+const ROAD_HALF = 5;        // road half-width
+const BLOCK = 60;           // grid spacing
+const RIVER_Z = 220;        // river center z
+const RIVER_W = 30;         // river half-width
+const HOME_POS = new THREE.Vector3(20, 0, 20);
+
+// ---------- Materials (shared, cheap) ----------
+const M = {
+  ground: new THREE.MeshLambertMaterial({color:0x4a6b3a}),
+  road:   new THREE.MeshLambertMaterial({color:0x2a2a2e}),
+  roadLine: new THREE.MeshBasicMaterial({color:0xeeeecc}),
+  sidewalk: new THREE.MeshLambertMaterial({color:0x888888}),
+  river:  new THREE.MeshLambertMaterial({color:0x2c5a78, transparent:true, opacity:0.85}),
+  bldg:   [0x9b8a7a,0xb7a98a,0xc8b48a,0x7a8a9b,0x8a7a6a,0xa89880].map(c=>new THREE.MeshLambertMaterial({color:c})),
+  win:    new THREE.MeshBasicMaterial({color:0xffe28a}),
+  winOff: new THREE.MeshBasicMaterial({color:0x2a3040}),
+  rail:   new THREE.MeshLambertMaterial({color:0x444444}),
+  tie:    new THREE.MeshLambertMaterial({color:0x553322}),
+  tree:   new THREE.MeshLambertMaterial({color:0x2d5a2a}),
+  trunk:  new THREE.MeshLambertMaterial({color:0x4a3220}),
+  npc:    [0xff5252,0x4ec9ff,0x9bff5a,0xffd24a,0xb47aff,0xffffff,0x222244].map(c=>new THREE.MeshLambertMaterial({color:c})),
+  cop:    new THREE.MeshLambertMaterial({color:0x223388}),
+  car:    [0xff3030,0x3070ff,0x20c060,0xeeeeee,0xffaa20,0x222222,0xffd24a].map(c=>new THREE.MeshLambertMaterial({color:c})),
+  tire:   new THREE.MeshLambertMaterial({color:0x111111}),
+  glass:  new THREE.MeshLambertMaterial({color:0x223344, transparent:true, opacity:0.6}),
+  metal:  new THREE.MeshLambertMaterial({color:0xaaaaaa}),
+  red:    new THREE.MeshBasicMaterial({color:0xff2222}),
+  white:  new THREE.MeshBasicMaterial({color:0xffffff}),
+  yellow: new THREE.MeshBasicMaterial({color:0xffd24a}),
+  blue:   new THREE.MeshBasicMaterial({color:0x3050ff}),
+  bullet: new THREE.MeshBasicMaterial({color:0xffeecc})
+};
+
+// ---------- Geometries (shared) ----------
+const G = {
+  box: new THREE.BoxGeometry(1,1,1),
+  cyl: new THREE.CylinderGeometry(0.5,0.5,1,10),
+  sph: new THREE.SphereGeometry(0.5,8,6),
+  plane: new THREE.PlaneGeometry(1,1),
+  cone: new THREE.ConeGeometry(0.5,1,8)
+};
+
+// ---------- Solid colliders registry ----------
+// Every solid (building, prop, vehicle body) registers an AABB or cylinder for collision.
+const colliders = []; // {x,z,r}  cylinder colliders for fast checks
+function addColliderCyl(x,z,r){ colliders.push({x,z,r:r*r, type:'c'}); }
+function addColliderBox(x,z,sx,sz){ colliders.push({x,z,sx:sx/2,sz:sz/2, type:'b'}); }
+function collide(x,z, pad=0.4){
+  for(let i=0;i<colliders.length;i++){
+    const c=colliders[i];
+    if(c.type==='c'){ const dx=x-c.x, dz=z-c.z; if(dx*dx+dz*dz < c.r + pad) return c; }
+    else { if(Math.abs(x-c.x) < c.sx+pad && Math.abs(z-c.z) < c.sz+pad) return c; }
+  }
+  return null;
+}
+
+// Road graph for spawning vehicles only on roads
+const roads = []; // segments {x1,z1,x2,z2,horiz}
+function isOnRoad(x,z, w=ROAD_HALF){
+  for(let i=0;i<roads.length;i++){
+    const r=roads[i];
+    if(r.horiz){ if(Math.abs(z-r.z1) < w && x>=Math.min(r.x1,r.x2)-w && x<=Math.max(r.x1,r.x2)+w) return true; }
+    else { if(Math.abs(x-r.x1) < w && z>=Math.min(r.z1,r.z2)-w && z<=Math.max(r.z1,r.z2)+w) return true; }
+  }
+  return false;
+}
+function isInRiver(x,z){ return Math.abs(z-RIVER_Z) < RIVER_W; }
+
+// ---------- Build world ----------
+function buildGround(){
+  // Use small ground tile so we don't draw the river on top.
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, WORLD*2, 1,1), M.ground);
+  g.rotation.x = -Math.PI/2;
+  g.position.y = 0;
+  scene.add(g);
+}
+
+function buildRoads(){
+  const lineGeo = new THREE.PlaneGeometry(1, 0.3);
+  // grid roads but skip the strip that crosses the river except at a bridge x=0
+  for(let i=-WORLD; i<=WORLD; i+=BLOCK){
+    // Horizontal road at z=i
+    if(Math.abs(i-RIVER_Z) < RIVER_W+2){
+      // skip — river is here, no road across it (this fixes "road in river")
+      continue;
+    }
+    const len = WORLD*2;
+    const r = new THREE.Mesh(new THREE.PlaneGeometry(len, ROAD_HALF*2), M.road);
+    r.rotation.x = -Math.PI/2; r.position.set(0, 0.01, i); scene.add(r);
+    roads.push({x1:-WORLD, z1:i, x2:WORLD, z2:i, horiz:true});
+    // dashed center line
+    for(let x=-WORLD; x<WORLD; x+=8){
+      const ln = new THREE.Mesh(lineGeo, M.roadLine);
+      ln.rotation.x = -Math.PI/2; ln.position.set(x+2, 0.02, i); ln.scale.x=3; scene.add(ln);
+    }
+    // sidewalks
+    for(const s of [-1,1]){
+      const sw = new THREE.Mesh(new THREE.PlaneGeometry(len, 1.2), M.sidewalk);
+      sw.rotation.x = -Math.PI/2; sw.position.set(0, 0.02, i+s*(ROAD_HALF+0.6)); scene.add(sw);
+    }
+    // Vertical road at x=i
+    const r2 = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_HALF*2, len), M.road);
+    r2.rotation.x = -Math.PI/2; r2.position.set(i, 0.011, 0); scene.add(r2);
+    roads.push({x1:i, z1:-WORLD, x2:i, z2:WORLD, horiz:false});
+    for(let z=-WORLD; z<WORLD; z+=8){
+      // skip lines inside river
+      if(isInRiver(i,z+2)) continue;
+      const ln = new THREE.Mesh(lineGeo, M.roadLine);
+      ln.rotation.x = -Math.PI/2; ln.rotation.z = Math.PI/2; ln.position.set(i, 0.022, z+2); ln.scale.x=3; scene.add(ln);
+    }
+  }
+  // Bridge over river at x=0
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(ROAD_HALF*2, 0.4, RIVER_W*2+6), M.road);
+  bridge.position.set(0, 0.3, RIVER_Z); scene.add(bridge);
+  // bridge railings (solid)
+  for(const sx of [-1,1]){
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.2, RIVER_W*2+6), M.metal);
+    rail.position.set(sx*ROAD_HALF, 1, RIVER_Z); scene.add(rail);
+    addColliderBox(sx*ROAD_HALF, RIVER_Z, 0.3, RIVER_W*2+6);
+  }
+  roads.push({x1:0, z1:RIVER_Z-RIVER_W, x2:0, z2:RIVER_Z+RIVER_W, horiz:false});
+}
+
+function buildRiver(){
+  // River as a strip across z = RIVER_Z, full width
+  const r = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, RIVER_W*2), M.river);
+  r.rotation.x = -Math.PI/2; r.position.set(0, 0.05, RIVER_Z); scene.add(r);
+  // NO barriers anywhere except the bridge (user fix)
+}
+
+const buildings = []; // {x,z,sx,sz,h, isHome, doorOpen}
+function buildBuildings(){
+  // Place 1 building per block cell (skip cells with river / road centers / home)
+  for(let cx=-WORLD+BLOCK/2; cx<WORLD; cx+=BLOCK){
+    for(let cz=-WORLD+BLOCK/2; cz<WORLD; cz+=BLOCK){
+      if(Math.abs(cz-RIVER_Z) < RIVER_W+8) continue;
+      // Don't place where roads are
+      if(isOnRoad(cx, cz, ROAD_HALF+3)) continue;
+      // small chance to skip = open lot (park)
+      if(Math.random() < 0.18){ buildPark(cx,cz); continue; }
+      // building inside cell, offset randomly
+      const sx = rand(10, 22), sz = rand(10, 22);
+      const h = rand(6, 28);
+      const x = cx + rand(-5,5), z = cz + rand(-5,5);
+      // ensure not on road
+      if(isOnRoad(x,z,ROAD_HALF+sx/2)) continue;
+      const isHome = (cx>0 && cz>0 && Math.abs(cx-HOME_POS.x)<BLOCK && Math.abs(cz-HOME_POS.z)<BLOCK && buildings.filter(b=>b.isHome).length===0);
+      const mat = isHome ? new THREE.MeshLambertMaterial({color:0xc59060}) : M.bldg[irand(0,M.bldg.length-1)];
+      const m = new THREE.Mesh(G.box, mat);
+      m.scale.set(sx, h, sz); m.position.set(x, h/2, z); scene.add(m);
+      // windows (cheap: 2 emissive strips)
+      if(Math.random()<0.85){
+        const winsF = new THREE.Mesh(G.box, M.win);
+        winsF.scale.set(sx*0.8, h*0.6, 0.05);
+        winsF.position.set(x, h*0.55, z + sz/2 + 0.03);
+        scene.add(winsF);
+      }
+      // door for home
+      if(isHome){
+        const door = new THREE.Mesh(G.box, new THREE.MeshLambertMaterial({color:0x442200}));
+        door.scale.set(2, 3, 0.2); door.position.set(x, 1.5, z + sz/2 + 0.11);
+        scene.add(door);
+        buildings.push({x,z,sx,sz,h,isHome:true, doorX: x, doorZ: z+sz/2+0.5, mesh:m});
+        // collider with a "door slot" — we approximate by registering 4 wall segments
+        // Front wall left
+        addColliderBox(x - sx/4, z + sz/2, sx/2, 0.6);
+        addColliderBox(x + sx/4, z + sz/2, sx/2, 0.6);
+        addColliderBox(x, z - sz/2, sx, 0.6);
+        addColliderBox(x - sx/2, z, 0.6, sz);
+        addColliderBox(x + sx/2, z, 0.6, sz);
+      } else {
+        buildings.push({x,z,sx,sz,h,isHome:false});
+        addColliderBox(x, z, sx, sz);
+      }
+    }
+  }
+}
+
+function buildPark(cx,cz){
+  // grass patch + trees (solid trunks)
+  for(let i=0;i<5;i++){
+    const x = cx+rand(-20,20), z = cz+rand(-20,20);
+    if(isOnRoad(x,z,ROAD_HALF+1)) continue;
+    if(isInRiver(x,z)) continue;
+    const trunk = new THREE.Mesh(G.cyl, M.trunk);
+    trunk.scale.set(0.4,3,0.4); trunk.position.set(x,1.5,z); scene.add(trunk);
+    const top = new THREE.Mesh(G.sph, M.tree);
+    top.scale.set(2.5,3,2.5); top.position.set(x,4,z); scene.add(top);
+    addColliderCyl(x,z,0.6);
+  }
+}
+
+// Lamps with point lights at night
+const lamps = [];
+function buildLamps(){
+  for(let i=-WORLD+BLOCK/2; i<WORLD; i+=BLOCK){
+    for(let j=-WORLD+BLOCK/2; j<WORLD; j+=BLOCK){
+      if(!isOnRoad(i,j, ROAD_HALF+2)) continue;
+      if(Math.random()<0.3){
+        const x=i, z=j;
+        const pole = new THREE.Mesh(G.cyl, M.metal); pole.scale.set(0.15,5,0.15); pole.position.set(x,2.5,z); scene.add(pole);
+        const head = new THREE.Mesh(G.sph, M.yellow); head.scale.set(0.4,0.4,0.4); head.position.set(x,5.2,z); scene.add(head);
+        addColliderCyl(x,z,0.3);
+        lamps.push({x,z,head, on:false});
+      }
+    }
+  }
+}
+
+// Railway and a moving train
+let train;
+function buildRailway(){
+  const z = -BLOCK*3; // a train line
+  const len = WORLD*2;
+  const railL = new THREE.Mesh(new THREE.BoxGeometry(len, 0.15, 0.2), M.rail);
+  const railR = new THREE.Mesh(new THREE.BoxGeometry(len, 0.15, 0.2), M.rail);
+  railL.position.set(0,0.08,z-0.7); railR.position.set(0,0.08,z+0.7);
+  scene.add(railL); scene.add(railR);
+  for(let x=-WORLD; x<WORLD; x+=4){
+    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.6,0.1,2), M.tie);
+    tie.position.set(x,0.05,z); scene.add(tie);
+  }
+  // Crossing markers
+  const cross = new THREE.Mesh(G.box, M.yellow); cross.scale.set(2,0.1,3); cross.position.set(0,0.06,z); scene.add(cross);
+  // Train (3 cars)
+  train = new THREE.Group();
+  for(let i=0;i<3;i++){
+    const car = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 2.5), new THREE.MeshLambertMaterial({color:i===0?0x223388:0x886622}));
+    car.position.set(i*9, 1.6, 0); train.add(car);
+  }
+  train.position.set(-WORLD, 0, z); scene.add(train);
+}
+
+// Neon signs
+function buildNeon(){
+  for(let i=0;i<24;i++){
+    const x = rand(-WORLD, WORLD), z = rand(-WORLD, WORLD);
+    if(isInRiver(x,z) || isOnRoad(x,z,8)) continue;
+    const m = new THREE.Mesh(G.box, [M.red,M.yellow,M.blue][irand(0,2)]);
+    m.scale.set(rand(2,5), 0.5, 0.2); m.position.set(x, rand(8,18), z); scene.add(m);
+  }
+}
+
+// Special interiors (chai stall, cyber cafe, airport)
+function buildSpecials(){
+  // Chai stall (heal area)
+  const stall = new THREE.Mesh(new THREE.BoxGeometry(4,3,4), new THREE.MeshLambertMaterial({color:0xff8844}));
+  stall.position.set(50, 1.5, -10); scene.add(stall); addColliderBox(50,-10,4,4);
+  healSpots.push({x:50,z:-10,r:6, name:'Chai Stall'});
+  // Cyber cafe sign
+  const cc = new THREE.Mesh(G.box, M.blue); cc.scale.set(6,1,0.3); cc.position.set(-50,5,40); scene.add(cc);
+  // Airport runway
+  const runway = new THREE.Mesh(new THREE.PlaneGeometry(80,12), M.road);
+  runway.rotation.x = -Math.PI/2; runway.position.set(-WORLD+60, 0.05, -WORLD+60); scene.add(runway);
+  airportPos = new THREE.Vector3(-WORLD+60, 0, -WORLD+60);
+  // ATM
+  const atm = new THREE.Mesh(G.box, M.metal); atm.scale.set(1,2,0.8); atm.position.set(30,1,30); scene.add(atm);
+  addColliderBox(30,30,1,0.8); atmSpots.push({x:30,z:30,r:3});
+  // Repair garage
+  const garage = new THREE.Mesh(G.box, new THREE.MeshLambertMaterial({color:0x554444}));
+  garage.scale.set(8,4,8); garage.position.set(-30,2,-30); scene.add(garage); addColliderBox(-30,-30,8,8);
+  garageSpots.push({x:-30,z:-30,r:8});
+  // Fuel pump
+  const pump = new THREE.Mesh(G.box, M.red); pump.scale.set(1.5,2,1); pump.position.set(60,1,60); scene.add(pump);
+  addColliderBox(60,60,1.5,1); fuelSpots.push({x:60,z:60,r:5});
+}
+
+let airportPos;
+const healSpots = [], atmSpots = [], garageSpots = [], fuelSpots = [];
+
+// ---------- Build ----------
+function build(){
+  buildGround();
+  buildRiver();
+  buildRoads();
+  buildBuildings();
+  buildLamps();
+  buildRailway();
+  buildNeon();
+  buildSpecials();
+}
+build();
+
+// ---------- Player ----------
+const player = {
+  pos: new THREE.Vector3(20, 1.7, 0),
+  yaw: 0, pitch: 0,
+  vy: 0, onGround:true,
+  hp: 100, money: 500, ammo: 12,
+  wanted: 0, wantedDecay: 0,
+  inVehicle: null,
+  swimming: false,
+  swimT: 0,
+  weapon: 'pistol',
+  alive: true
+};
+
+// ---------- Vehicles ----------
+const vehicles = [];
+function makeCar(x,z, color){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.6, 4.2), new THREE.MeshLambertMaterial({color}));
+  body.position.y = 0.7; g.add(body);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.7, 2.0), M.glass);
+  cabin.position.set(0, 1.3, -0.1); g.add(cabin);
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.15, 1.2), new THREE.MeshLambertMaterial({color}));
+  hood.position.set(0, 1.0, 1.4); g.add(hood);
+  // wheels
+  for(const wx of [-0.9,0.9]) for(const wz of [-1.4,1.4]){
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.3,10), M.tire);
+    w.rotation.z = Math.PI/2; w.position.set(wx,0.4,wz); g.add(w);
+  }
+  // headlights
+  const hL = new THREE.Mesh(G.box, M.white); hL.scale.set(0.3,0.2,0.1); hL.position.set(-0.6, 0.7, 2.15); g.add(hL);
+  const hR = new THREE.Mesh(G.box, M.white); hR.scale.set(0.3,0.2,0.1); hR.position.set(0.6, 0.7, 2.15); g.add(hR);
+  // brake lights
+  const bL = new THREE.Mesh(G.box, M.red); bL.scale.set(0.3,0.2,0.1); bL.position.set(-0.6, 0.7, -2.15); g.add(bL);
+  const bR = new THREE.Mesh(G.box, M.red); bR.scale.set(0.3,0.2,0.1); bR.position.set(0.6, 0.7, -2.15); g.add(bR);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  return {mesh:g, type:'car', name:'Car', vel:0, yaw: rand(0,Math.PI*2), hp:100, fuel:100, headlights:hL, headlightsR:hR, brakeL:bL, brakeR:bR, lightsOn:false, isAI:true, lastHorn:0};
+}
+function makeBike(x,z,color){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 2), new THREE.MeshLambertMaterial({color}));
+  body.position.y = 0.7; g.add(body);
+  const seat = new THREE.Mesh(G.box, new THREE.MeshLambertMaterial({color:0x222222}));
+  seat.scale.set(0.6,0.2,0.8); seat.position.set(0,1,0); g.add(seat);
+  for(const wz of [-0.9,0.9]){
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.2,10), M.tire);
+    w.rotation.z = Math.PI/2; w.position.set(0,0.4,wz); g.add(w);
+  }
+  const hL = new THREE.Mesh(G.box, M.white); hL.scale.set(0.2,0.15,0.1); hL.position.set(0,0.8,1.05); g.add(hL);
+  g.position.set(x,0,z); scene.add(g);
+  return {mesh:g, type:'bike', name:'Bike', vel:0, yaw:0, hp:60, fuel:100, headlights:hL, headlightsR:hL, brakeL:hL, brakeR:hL, lightsOn:false, isAI:false};
+}
+function makeHeli(x,z){
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2,1.5,4), new THREE.MeshLambertMaterial({color:0x224488}));
+  body.position.y = 1.5; g.add(body);
+  const tail = new THREE.Mesh(G.box, M.metal); tail.scale.set(0.3,0.3,3); tail.position.set(0,1.7,-3); g.add(tail);
+  const rotor = new THREE.Mesh(new THREE.BoxGeometry(8,0.1,0.3), M.metal);
+  rotor.position.set(0,2.6,0); g.add(rotor);
+  const rotor2 = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.5,0.1), M.metal);
+  rotor2.position.set(0,2.0,-4.5); g.add(rotor2);
+  // skids
+  for(const sx of [-0.8,0.8]){
+    const s = new THREE.Mesh(G.box, M.metal); s.scale.set(0.1,0.1,3); s.position.set(sx,0.5,0); g.add(s);
+  }
+  g.position.set(x,0,z); scene.add(g);
+  return {mesh:g, type:'heli', name:'Helicopter', vel:0, yaw:0, hp:120, fuel:100, rotor, rotor2, alt:0, headlights:body, headlightsR:body, brakeL:body, brakeR:body, lightsOn:false, isAI:false};
+}
+function makePlane(x,z){
+  const g = new THREE.Group();
+  const fuselage = new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,6,10), new THREE.MeshLambertMaterial({color:0xeeeeee}));
+  fuselage.rotation.z = Math.PI/2; fuselage.position.y = 1.5; g.add(fuselage);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(1.2,0.15,8), new THREE.MeshLambertMaterial({color:0xeeeeee}));
+  wing.position.set(0,1.5,0); g.add(wing);
+  const tailV = new THREE.Mesh(G.box, M.metal); tailV.scale.set(0.1,1.2,0.8); tailV.position.set(-2.6,2.2,0); g.add(tailV);
+  const tailH = new THREE.Mesh(G.box, M.metal); tailH.scale.set(0.1,0.1,2.5); tailH.position.set(-2.6,1.8,0); g.add(tailH);
+  const prop = new THREE.Mesh(new THREE.BoxGeometry(0.1,1.6,0.15), M.metal);
+  prop.position.set(3.05,1.5,0); g.add(prop);
+  // landing gear
+  for(const sx of [-1.2,1.2,2.5]){
+    const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.25,8), M.tire);
+    wh.rotation.z = Math.PI/2; wh.position.set(sx,0.3, sx<2?0.7:0); g.add(wh);
+    if(sx<2){
+      const wh2 = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.25,8), M.tire);
+      wh2.rotation.z = Math.PI/2; wh2.position.set(sx,0.3,-0.7); g.add(wh2);
+    }
+  }
+  g.position.set(x,0,z); scene.add(g);
+  return {mesh:g, type:'plane', name:'Plane', vel:0, yaw:0, hp:140, fuel:100, prop, alt:0, pitch:0, headlights:fuselage, headlightsR:fuselage, brakeL:fuselage, brakeR:fuselage, lightsOn:false, isAI:false};
+}
+
+function spawnVehiclesOnRoads(){
+  // Cars only on road tiles, snap exactly to road centerline lane
+  for(let i=0;i<Q.carMax;i++){
+    // pick a random road
+    const r = roads[irand(0, roads.length-1)];
+    let x,z;
+    if(r.horiz){ x = rand(r.x1, r.x2); z = r.z1 + (Math.random()<0.5?-2:2); }
+    else { z = rand(r.z1, r.z2); x = r.x1 + (Math.random()<0.5?-2:2); }
+    if(isInRiver(x,z)) { i--; continue; }
+    const v = makeCar(x,z, [0xff3030,0x3070ff,0x20c060,0xeeeeee,0xffaa20,0x222222][irand(0,5)]);
+    v.yaw = r.horiz ? (Math.random()<0.5?0:Math.PI) : (Math.random()<0.5?Math.PI/2:-Math.PI/2);
+    v.mesh.rotation.y = v.yaw;
+    vehicles.push(v);
+  }
+  // Bikes
+  for(let i=0;i<3;i++){
+    const r = roads[irand(0, roads.length-1)];
+    let x = r.horiz ? rand(r.x1,r.x2) : r.x1;
+    let z = r.horiz ? r.z1 : rand(r.z1,r.z2);
+    if(isInRiver(x,z)){ i--; continue; }
+    const b = makeBike(x,z,0x222222); b.isAI=false; vehicles.push(b);
+  }
+  // Heli at airport
+  const h = makeHeli(airportPos.x+10, airportPos.z); h.isAI=false; vehicles.push(h);
+  // Plane on runway
+  const p = makePlane(airportPos.x-20, airportPos.z); p.isAI=false; vehicles.push(p);
+}
+spawnVehiclesOnRoads();
+
+// ---------- NPCs ----------
+const npcs = [];
+function makeNPC(x,z, isCop=false){
+  const g = new THREE.Group();
+  const color = isCop ? 0x223388 : M.npc[irand(0,M.npc.length-1)].color;
+  const body = new THREE.Mesh(G.box, new THREE.MeshLambertMaterial({color}));
+  body.scale.set(0.6,1.0,0.4); body.position.y = 0.6; g.add(body);
+  const head = new THREE.Mesh(G.sph, new THREE.MeshLambertMaterial({color:0xffd1a0}));
+  head.scale.set(0.35,0.35,0.35); head.position.y = 1.4; g.add(head);
+  // arms
+  const armL = new THREE.Mesh(G.box, new THREE.MeshLambertMaterial({color}));
+  armL.scale.set(0.18,0.7,0.18); armL.position.set(-0.4,0.7,0); g.add(armL);
+  const armR = armL.clone(); armR.position.x = 0.4; g.add(armR);
+  // legs
+  const legL = new THREE.Mesh(G.box, new THREE.MeshLambertMaterial({color:0x222244}));
+  legL.scale.set(0.22,0.7,0.22); legL.position.set(-0.15,0.0,0); g.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.15; g.add(legR);
+  // umbrella (hidden by default)
+  const umb = new THREE.Mesh(G.cone, new THREE.MeshLambertMaterial({color:0x222266}));
+  umb.scale.set(1.2,0.5,1.2); umb.position.y = 2.0; umb.visible = false; g.add(umb);
+  g.position.set(x,0,z);
+  scene.add(g);
+  return {mesh:g, body,head, armL,armR, legL,legR, umb, isCop, hp: isCop?80:50,
+    target:new THREE.Vector3(x+rand(-20,20),0,z+rand(-20,20)),
+    speed: isCop?3.2:1.4, panic:false, alive:true, walkT:Math.random()*10, lastShout:0};
+}
+function spawnNPCs(){
+  for(let i=0;i<Q.npcMax;i++){
+    let x,z, tries=0;
+    do { x = rand(-WORLD,WORLD); z = rand(-WORLD,WORLD); tries++; }
+    while((isInRiver(x,z) || collide(x,z,1)) && tries<10);
+    npcs.push(makeNPC(x,z, false));
+  }
+}
+spawnNPCs();
+
+// ---------- Audio (WebAudio cheap) ----------
+let actx;
+function ensureAudio(){ if(!actx) try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+function beep(freq=440, dur=0.1, type='square', vol=0.05){
+  if(!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type=type; o.frequency.value=freq; g.gain.value=vol;
+  o.connect(g).connect(actx.destination);
+  o.start(); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+  o.stop(actx.currentTime+dur);
+}
+function noise(dur=0.2, vol=0.06){
+  if(!actx) return;
+  const b = actx.createBuffer(1, actx.sampleRate*dur, actx.sampleRate);
+  const d = b.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length,2);
+  const s = actx.createBufferSource(); s.buffer=b;
+  const g = actx.createGain(); g.gain.value=vol;
+  s.connect(g).connect(actx.destination); s.start();
+}
+function sayShoot(){ noise(0.08,0.1); beep(800,0.05,'square',0.05); }
+function sayHorn(){ beep(220,0.25,'sawtooth',0.08); }
+function sayPolice(){ beep(900,0.15,'sine',0.06); setTimeout(()=>beep(600,0.15,'sine',0.06),160); }
+function sayNPCTalk(){ beep(300+Math.random()*200,0.06,'triangle',0.03); }
+function sayPanic(){ beep(900+Math.random()*200,0.2,'sawtooth',0.06); }
+
+// Ambient loop (very light): periodic horn/dog
+let lastAmbient = 0;
+function ambientTick(t){
+  if(t-lastAmbient < 4+Math.random()*6) return;
+  lastAmbient = t;
+  const r = Math.random();
+  if(r<0.3) sayHorn();
+  else if(r<0.5) { beep(600,0.2,'sawtooth',0.04); beep(500,0.2,'sawtooth',0.04); } // dog bark
+  else if(r<0.7) sayNPCTalk();
+}
+
+// ---------- Weather & day/night ----------
+const W = { time: 0.35, weather:'clear', rainParts:null, fogDensity:0 };
+function updateSky(dt){
+  W.time += dt * 0.005; // ~3 min per day
+  if(W.time>1) W.time-=1;
+  // sun angle
+  const ang = W.time * Math.PI*2 - Math.PI/2;
+  sun.position.set(Math.cos(ang)*100, Math.sin(ang)*100, 40);
+  const day = clamp(Math.sin(ang)*0.5+0.5, 0, 1);
+  sun.intensity = 0.2 + day*0.9;
+  hemi.intensity = 0.3 + day*0.6;
+  // sky color (sunset tint)
+  const sunset = clamp(1 - Math.abs(W.time-0.25)*4, 0,1) + clamp(1-Math.abs(W.time-0.75)*4,0,1);
+  const r = 0.5 + day*0.3 + sunset*0.3;
+  const g = 0.55 + day*0.3 + sunset*0.1;
+  const b = 0.7 + day*0.2 - sunset*0.1;
+  renderer.setClearColor(new THREE.Color(r,g,b));
+  if(scene.fog){ scene.fog.color.setRGB(r,g,b); }
+  // lamps on at night
+  const night = day < 0.3;
+  if(night !== lamps._on){
+    lamps._on = night;
+    for(const l of lamps){ l.head.material = night ? M.yellow : M.metal; }
+  }
+  // film grain at night
+  $('grain').style.opacity = night ? '0.15' : '0';
+  // weather change occasionally
+  if(Math.random()<0.0008){
+    const opts = ['clear','rain','fog','storm'];
+    setWeather(opts[irand(0,3)]);
+  }
+}
+function setWeather(w){
+  W.weather = w;
+  $('weather').textContent = w;
+  if(scene.fog){
+    scene.fog.near = w==='fog' ? 5 : (w==='storm'?20:60);
+    scene.fog.far = w==='fog' ? 80 : Q.drawDist;
+  }
+  if(w==='rain' || w==='storm'){
+    if(!W.rainParts && Q.particles){
+      const geo = new THREE.BufferGeometry();
+      const N = 600;
+      const arr = new Float32Array(N*3);
+      for(let i=0;i<N;i++){ arr[i*3]=rand(-100,100); arr[i*3+1]=rand(0,40); arr[i*3+2]=rand(-100,100); }
+      geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+      const mat = new THREE.PointsMaterial({color:0xaaccee, size:0.15});
+      W.rainParts = new THREE.Points(geo,mat); scene.add(W.rainParts);
+    }
+  } else if(W.rainParts){ scene.remove(W.rainParts); W.rainParts.geometry.dispose(); W.rainParts=null; }
+  // NPCs umbrella
+  const useUmb = (w==='rain'||w==='storm');
+  for(const n of npcs){ if(n.umb) n.umb.visible = useUmb; }
+}
+function rainTick(dt){
+  if(!W.rainParts) return;
+  const p = W.rainParts.geometry.attributes.position.array;
+  for(let i=0;i<p.length;i+=3){
+    p[i+1] -= 30*dt;
+    if(p[i+1]<0){ p[i+1]=40; p[i]=player.pos.x+rand(-50,50); p[i+2]=player.pos.z+rand(-50,50); }
+  }
+  W.rainParts.geometry.attributes.position.needsUpdate = true;
+  if(W.weather==='storm' && Math.random()<0.005){
+    $('flash').style.opacity = '0.8';
+    setTimeout(()=>$('flash').style.opacity='0', 80);
+    setTimeout(()=>noise(0.6,0.15), 300);
+  }
+}
+
+// ---------- Bullets, smoke, skids ----------
+const bullets = [];
+function fireBullet(){
+  if(player.ammo<=0){ showMsg('Out of ammo'); return; }
+  player.ammo--;
+  const dir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(player.pitch, player.yaw, 0));
+  const start = camera.position.clone();
+  const b = new THREE.Mesh(G.sph, M.bullet); b.scale.set(0.1,0.1,0.1); b.position.copy(start);
+  scene.add(b);
+  bullets.push({mesh:b, dir, life:0.6, dmg: 25});
+  sayShoot();
+  // hit detection (instant, simple)
+  for(const n of npcs){
+    if(!n.alive) continue;
+    const np = n.mesh.position;
+    const d = np.clone().sub(start);
+    const t = d.dot(dir);
+    if(t<0 || t>50) continue;
+    const closest = start.clone().add(dir.clone().multiplyScalar(t));
+    const off = np.clone().setY(closest.y).distanceTo(closest);
+    if(off<0.7){
+      // headshot if y near head (1.4)
+      const head = closest.y > 1.2;
+      n.hp -= head?80:30;
+      if(n.hp<=0){ killNPC(n); player.wanted = Math.min(5, player.wanted+1); updateWanted(); }
+      else { n.panic = true; spreadPanic(n); }
+      break;
+    }
+  }
+  // hit vehicles
+  for(const v of vehicles){
+    const vp = v.mesh.position; const d = vp.clone().sub(start);
+    const t = d.dot(dir); if(t<0||t>50) continue;
+    const closest = start.clone().add(dir.clone().multiplyScalar(t));
+    if(vp.distanceTo(closest)<2){ v.hp -= 15; if(v.hp<=0){ /* explode lite */ flashRed(); } }
+  }
+}
+function killNPC(n){
+  n.alive = false;
+  n.mesh.rotation.x = Math.PI/2;
+  n.mesh.position.y = 0.2;
+}
+function spreadPanic(origin){
+  sayPanic();
+  for(const n of npcs){
+    if(!n.alive) continue;
+    if(dist2(n.mesh.position, origin.mesh.position) < 400){
+      n.panic = true;
+      n.target.set(n.mesh.position.x + rand(-40,40), 0, n.mesh.position.z + rand(-40,40));
+    }
+  }
+}
+function flashRed(){ $('flash').style.opacity='0.5'; setTimeout(()=>$('flash').style.opacity='0',150); }
+
+// ---------- Wanted level / Cops ----------
+function updateWanted(){
+  $('wanted').textContent = player.wanted ? '★'.repeat(player.wanted) : '—';
+  if(player.wanted>0) sayPolice();
+}
+function spawnCop(){
+  let x,z, t=0;
+  do { x = player.pos.x+rand(-80,80); z = player.pos.z+rand(-80,80); t++; }
+  while((isInRiver(x,z) || collide(x,z,1)) && t<10);
+  const c = makeNPC(x,z,true);
+  npcs.push(c);
+  return c;
+}
+
+// ---------- Input ----------
+const keys = {};
+window.addEventListener('keydown', (e)=>{
+  keys[e.code] = true;
+  if(e.code==='F2'){ DESKTOP_MODE = !DESKTOP_MODE; applyMode(); e.preventDefault(); }
+  if(e.code==='F1'){ showMsg('Controls: WASD move · Mouse look · Shift run · Space jump · LMB fire · E enter/exit · H horn · L lights · R photo · F save'); e.preventDefault(); }
+  if(e.code==='Escape'){ togglePhone(); }
+  if(e.code==='KeyE'){ tryEnterExit(); }
+  if(e.code==='KeyH'){ honk(); }
+  if(e.code==='KeyL'){ toggleLights(); }
+  if(e.code==='KeyF'){ saveGame(); showMsg('Saved'); }
+  if(e.code==='KeyG'){ throwSmoke(); }
+  if(e.code==='KeyQ'){ slowMo = !slowMo; $('slowmo').style.opacity = slowMo?'1':'0'; }
+});
+window.addEventListener('keyup', (e)=>{ keys[e.code]=false; });
+
+// Mouse look (desktop)
+let pointerLocked = false;
+renderer.domElement.addEventListener('click', ()=>{
+  ensureAudio();
+  if(DESKTOP_MODE && !pointerLocked){
+    renderer.domElement.requestPointerLock?.();
+  } else if(DESKTOP_MODE){
+    fireBullet();
+  }
+});
+document.addEventListener('pointerlockchange', ()=>{
+  pointerLocked = document.pointerLockElement === renderer.domElement;
+});
+window.addEventListener('mousemove', (e)=>{
+  if(!pointerLocked) return;
+  player.yaw -= e.movementX*0.0025;
+  player.pitch -= e.movementY*0.0025;
+  player.pitch = clamp(player.pitch, -1.2, 1.2);
+});
+
+// Touch controls
+const stick = {active:false, id:-1, cx:0,cy:0, dx:0, dy:0};
+const stickEl = $('stick'); const knob = $('stickKnob');
+stickEl.addEventListener('touchstart', (e)=>{
+  ensureAudio();
+  const t = e.changedTouches[0];
+  stick.active=true; stick.id=t.identifier;
+  const r = stickEl.getBoundingClientRect();
+  stick.cx = r.left+r.width/2; stick.cy = r.top+r.height/2;
+  e.preventDefault();
+}, {passive:false});
+stickEl.addEventListener('touchmove', (e)=>{
+  for(const t of e.changedTouches){
+    if(t.identifier!==stick.id) continue;
+    let dx = t.clientX-stick.cx, dy = t.clientY-stick.cy;
+    const m = Math.hypot(dx,dy), max=50;
+    if(m>max){ dx=dx/m*max; dy=dy/m*max; }
+    stick.dx = dx/max; stick.dy = dy/max;
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+  }
+  e.preventDefault();
+}, {passive:false});
+stickEl.addEventListener('touchend', (e)=>{
+  for(const t of e.changedTouches){
+    if(t.identifier!==stick.id) continue;
+    stick.active=false; stick.id=-1; stick.dx=0; stick.dy=0;
+    knob.style.transform='translate(-50%,-50%)';
+    knob.style.left='50%'; knob.style.top='50%';
+  }
+});
+const look = {id:-1, lx:0, ly:0};
+const lookEl = $('look');
+lookEl.addEventListener('touchstart', (e)=>{
+  ensureAudio();
+  const t = e.changedTouches[0]; look.id=t.identifier; look.lx=t.clientX; look.ly=t.clientY;
+  e.preventDefault();
+}, {passive:false});
+lookEl.addEventListener('touchmove', (e)=>{
+  for(const t of e.changedTouches){
+    if(t.identifier!==look.id) continue;
+    const dx = t.clientX - look.lx, dy = t.clientY-look.ly;
+    look.lx = t.clientX; look.ly = t.clientY;
+    player.yaw -= dx*0.005;
+    player.pitch -= dy*0.005;
+    player.pitch = clamp(player.pitch,-1.2,1.2);
+  }
+}, {passive:false});
+lookEl.addEventListener('touchend', (e)=>{
+  for(const t of e.changedTouches) if(t.identifier===look.id) look.id=-1;
+});
+
+// Touch buttons
+let runBtn=false, jumpQueue=false, slowMo=false;
+$('bA').addEventListener('touchstart', (e)=>{ ensureAudio(); fireBullet(); e.preventDefault(); }, {passive:false});
+$('bB').addEventListener('touchstart', (e)=>{ jumpQueue=true; e.preventDefault(); }, {passive:false});
+$('bC').addEventListener('touchstart', (e)=>{ tryEnterExit(); e.preventDefault(); }, {passive:false});
+$('bD').addEventListener('touchstart', (e)=>{ runBtn=true; e.preventDefault(); }, {passive:false});
+$('bD').addEventListener('touchend', ()=>{ runBtn=false; });
+$('bE').addEventListener('touchstart', (e)=>{ slowMo=!slowMo; $('slowmo').style.opacity=slowMo?'1':'0'; e.preventDefault(); }, {passive:false});
+$('bF').addEventListener('touchstart', (e)=>{ honk(); e.preventDefault(); }, {passive:false});
+$('bG').addEventListener('touchstart', (e)=>{ toggleLights(); e.preventDefault(); }, {passive:false});
+$('bH').addEventListener('touchstart', (e)=>{ throwSmoke(); e.preventDefault(); }, {passive:false});
+
+// Top buttons
+$('btnPhone').onclick = ()=>{ togglePhone(); };
+$('btnSave').onclick = ()=>{ saveGame(); showMsg('Saved'); };
+$('btnPhoto').onclick = ()=>{ photoMode(); };
+$('btnMode').onclick = ()=>{ DESKTOP_MODE=!DESKTOP_MODE; applyMode(); };
+$('phoneClose').onclick = ()=>{ $('phone').style.display='none'; };
+document.querySelectorAll('#phone .row').forEach(el=>{
+  el.onclick = ()=>{
+    const a = el.dataset.act;
+    if(a==='save'){ saveGame(); showMsg('Saved'); }
+    if(a==='load'){ loadGame(); showMsg('Loaded'); }
+    if(a==='missions'){ showMsg('Missions: Drive a vehicle to the airport, deliver! (₹+200)'); mission='delivery'; missionTarget=airportPos.clone(); }
+    if(a==='settings'){ const next={low:'med',med:'high',high:'ultra',ultra:'low',auto:'low'}[Q.preset]; setPreset(next); showMsg('Graphics: '+Q.preset); }
+    if(a==='radio'){ beep(440,0.2,'sine',0.06); beep(550,0.2,'sine',0.06); showMsg('📻 Radio Mirchi (lite)'); }
+    if(a==='help'){ showMsg('Touch: stick to move, drag right to look. Buttons: FIRE, JUMP, USE(enter/exit), RUN, SLO, HORN, LITE, SWAP. F2 = desktop mode'); }
+  };
+});
+function togglePhone(){ const p=$('phone'); p.style.display = p.style.display==='block'?'none':'block'; }
+function photoMode(){
+  // Take screenshot
+  const url = renderer.domElement.toDataURL('image/png');
+  const a = document.createElement('a'); a.href=url; a.download='worldsim_photo.png'; a.click();
+  showMsg('📷 Saved photo');
+}
+
+// ---------- Vehicle interaction ----------
+function tryEnterExit(){
+  if(player.inVehicle){
+    const v = player.inVehicle;
+    player.inVehicle = null;
+    player.pos.copy(v.mesh.position).add(new THREE.Vector3(2,1.7,0));
+    $('vehInfo').style.display='none';
+    showMsg('Exited '+v.name);
+    return;
+  }
+  // find nearest vehicle within 3
+  let best=null, bd=9;
+  for(const v of vehicles){
+    const d = v.mesh.position.distanceTo(player.pos);
+    if(d<bd){ bd=d; best=v; }
+  }
+  if(best){
+    player.inVehicle = best;
+    best.isAI = false;
+    $('vehInfo').style.display='block';
+    $('vehName').textContent = best.name;
+    showMsg('Entered '+best.name+' (E to exit)');
+  } else {
+    // Maybe enter home door
+    const home = buildings.find(b=>b.isHome);
+    if(home){
+      const d = Math.hypot(player.pos.x-home.doorX, player.pos.z-home.doorZ);
+      if(d<2){ showMsg('🏠 Welcome home'); player.hp = Math.min(100, player.hp+30); }
+    }
+  }
+}
+function honk(){
+  if(!player.inVehicle) return;
+  sayHorn();
+}
+function toggleLights(){
+  if(!player.inVehicle) return;
+  const v = player.inVehicle;
+  v.lightsOn = !v.lightsOn;
+  v.headlights.material = v.lightsOn ? M.yellow : M.white;
+  v.headlightsR.material = v.lightsOn ? M.yellow : M.white;
+  showMsg('Lights '+(v.lightsOn?'ON':'OFF'));
+}
+function throwSmoke(){
+  if(!Q.particles) return;
+  const pos = player.pos.clone();
+  const dir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0, player.yaw, 0));
+  const target = pos.clone().add(dir.multiplyScalar(8));
+  const cloud = new THREE.Mesh(G.sph, new THREE.MeshLambertMaterial({color:0xcccccc, transparent:true, opacity:0.7}));
+  cloud.position.copy(target); cloud.scale.set(2,2,2); scene.add(cloud);
+  let t=0;
+  const tick = setInterval(()=>{
+    t+=0.1; cloud.scale.multiplyScalar(1.05); cloud.material.opacity *= 0.96;
+    if(t>4){ scene.remove(cloud); clearInterval(tick); }
+  }, 100);
+  // distract cops
+  for(const n of npcs) if(n.isCop && dist2(n.mesh.position,target)<400) n.target.copy(target);
+}
+
+// ---------- Save / load ----------
+function saveGame(){
+  const s = {pos:player.pos.toArray(), hp:player.hp, money:player.money, ammo:player.ammo, time:W.time, weather:W.weather};
+  try{ localStorage.setItem('worldsim_v5_save', JSON.stringify(s)); }catch(e){}
+}
+function loadGame(){
+  try{
+    const s = JSON.parse(localStorage.getItem('worldsim_v5_save'));
+    if(!s) return;
+    player.pos.fromArray(s.pos); player.hp=s.hp; player.money=s.money; player.ammo=s.ammo;
+    W.time=s.time; setWeather(s.weather);
+  }catch(e){}
+}
+
+// ---------- Missions ----------
+let mission=null, missionTarget=null;
+function checkMission(){
+  if(!mission||!missionTarget) return;
+  if(mission==='delivery' && player.inVehicle){
+    if(player.pos.distanceTo(missionTarget)<10){
+      player.money += 200; mission=null; missionTarget=null;
+      showMsg('Delivery complete +₹200');
+    }
+  }
+}
+
+// ---------- Movement / physics ----------
+function tryMove(nx,nz){
+  if(!collide(nx, player.pos.z, 0.5)) player.pos.x = nx;
+  if(!collide(player.pos.x, nz, 0.5)) player.pos.z = nz;
+  player.pos.x = clamp(player.pos.x, -WORLD+1, WORLD-1);
+  player.pos.z = clamp(player.pos.z, -WORLD+1, WORLD-1);
+}
+
+function updatePlayer(dt){
+  if(!player.alive) return;
+  if(player.inVehicle){
+    const v = player.inVehicle;
+    // controls: forward/back from input
+    const fwd = -(stick.dy) + (keys['KeyW']?1:0) - (keys['KeyS']?1:0);
+    const turn = (stick.dx) + (keys['KeyD']?1:0) - (keys['KeyA']?1:0);
+    if(v.type==='heli' || v.type==='plane'){
+      // PLANE/HELI controls: forward = throttle, turn = yaw, jump = up, slow = down
+      v.vel += fwd*15*dt; v.vel *= (1-0.6*dt);
+      v.yaw -= turn*1.2*dt;
+      v.mesh.rotation.y = v.yaw;
+      // altitude
+      const up = (keys['Space']||jumpQueue) ? 1 : 0;
+      const down = (keys['ShiftLeft']||runBtn) ? 1 : 0;
+      v.alt += (up-down)*8*dt;
+      v.alt = clamp(v.alt, 0, 60);
+      // forward speed needed for plane to climb / not stall
+      if(v.type==='plane'){
+        // plane needs speed; if speed > 12 it can climb based on pitch
+        v.pitch = (up-down)*0.4;
+        v.mesh.rotation.x = -v.pitch;
+        if(Math.abs(v.vel) < 3) v.alt = Math.max(0, v.alt - 2*dt); // can't fly slow
+        if(v.prop) v.prop.rotation.x += Math.abs(v.vel)*0.5;
+      }
+      if(v.type==='heli' && v.rotor) { v.rotor.rotation.y += 20*dt; if(v.rotor2) v.rotor2.rotation.x += 25*dt; }
+      // move
+      const dir = new THREE.Vector3(0,0,1).applyEuler(new THREE.Euler(0,v.yaw,0));
+      v.mesh.position.x += dir.x * v.vel * dt;
+      v.mesh.position.z += dir.z * v.vel * dt;
+      v.mesh.position.y = v.alt;
+      jumpQueue = false;
+    } else {
+      // car/bike
+      v.vel += fwd*12*dt;
+      v.vel *= (1-0.5*dt);
+      v.vel = clamp(v.vel, -8, 22);
+      v.yaw -= turn * dt * (v.vel*0.06);
+      v.mesh.rotation.y = v.yaw;
+      const dir = new THREE.Vector3(0,0,1).applyEuler(new THREE.Euler(0,v.yaw,0));
+      const nx = v.mesh.position.x + dir.x*v.vel*dt;
+      const nz = v.mesh.position.z + dir.z*v.vel*dt;
+      // collide check (not against itself)
+      const c = collide(nx, nz, 1.2);
+      if(!c){ v.mesh.position.x = nx; v.mesh.position.z = nz; }
+      else { v.vel *= -0.3; v.hp -= Math.abs(v.vel)*0.1; }
+      // brake light
+      if(v.brakeL && v.brakeR){ const braking = fwd<0 || Math.abs(v.vel)<0.5;
+        v.brakeL.material = braking ? M.red : new THREE.MeshBasicMaterial({color:0x550000});
+        v.brakeR.material = braking ? M.red : v.brakeL.material;
+      }
+      // Skid marks if turning hard
+      if(Math.abs(v.vel)>10 && Math.abs(turn)>0.7 && Q.particles && Math.random()<0.4){
+        const sk = new THREE.Mesh(G.plane, new THREE.MeshBasicMaterial({color:0x111111}));
+        sk.rotation.x = -Math.PI/2; sk.position.set(v.mesh.position.x, 0.04, v.mesh.position.z);
+        sk.scale.set(0.5,0.5,1); scene.add(sk);
+        setTimeout(()=>{ scene.remove(sk); sk.material.dispose(); }, 8000);
+      }
+      // fuel use
+      v.fuel -= Math.abs(v.vel)*0.001;
+      if(v.fuel<0){ v.fuel=0; v.vel*=0.95; }
+    }
+    player.pos.copy(v.mesh.position).add(new THREE.Vector3(0,1.7,0));
+    $('fuel').textContent = Math.max(0, Math.floor(v.fuel));
+  } else {
+    // Walking
+    const speed = (keys['ShiftLeft']||runBtn) ? 6 : 3;
+    let mx = stick.dx, mz = stick.dy;
+    if(keys['KeyW']) mz=-1; if(keys['KeyS']) mz=1;
+    if(keys['KeyA']) mx=-1; if(keys['KeyD']) mx=1;
+    const m = Math.hypot(mx,mz); if(m>1){ mx/=m; mz/=m; }
+    const s = Math.sin(player.yaw), c = Math.cos(player.yaw);
+    const dx = (mx*c - mz*s)*speed*dt;
+    const dz = (mx*-s - mz*c)*speed*dt;  // forward = -z in screen space
+    let nx = player.pos.x + dx, nz = player.pos.z + dz;
+    // Swimming: in river you can move slower and you can't drown
+    player.swimming = isInRiver(nx,nz);
+    if(player.swimming){
+      nx = player.pos.x + dx*0.5; nz = player.pos.z + dz*0.5;
+      player.swimT += dt*5;
+    }
+    tryMove(nx,nz);
+    // Jump
+    if((keys['Space']||jumpQueue) && player.onGround){ player.vy = 5; player.onGround=false; jumpQueue=false; }
+    player.vy -= 12*dt;
+    let baseY = player.swimming ? 1.0 : 1.7;  // sink while swimming
+    player.pos.y += player.vy*dt;
+    if(player.pos.y < baseY){ player.pos.y = baseY; player.vy=0; player.onGround=true; }
+    $('fuel').textContent = '--';
+  }
+  // Camera follows
+  if(player.inVehicle && player.inVehicle.type!=='plane'){
+    const v = player.inVehicle;
+    const back = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0,v.yaw,0));
+    const wantPos = v.mesh.position.clone().add(back.multiplyScalar(7)).add(new THREE.Vector3(0,3.5+(v.type==='heli'?2:0),0));
+    camera.position.lerp(wantPos, 0.2);
+    camera.lookAt(v.mesh.position.x, v.mesh.position.y+1, v.mesh.position.z);
+    // override mouse look only partially
+  } else if(player.inVehicle && player.inVehicle.type==='plane'){
+    const v = player.inVehicle;
+    const back = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0,v.yaw,0));
+    const wantPos = v.mesh.position.clone().add(back.multiplyScalar(12)).add(new THREE.Vector3(0,5,0));
+    camera.position.lerp(wantPos, 0.15);
+    camera.lookAt(v.mesh.position);
+  } else {
+    camera.position.copy(player.pos);
+    if(player.swimming) camera.position.y = 1.0 + Math.sin(player.swimT)*0.1;
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = player.yaw;
+    camera.rotation.x = player.pitch;
+  }
+}
+
+// ---------- NPC update ----------
+function updateNPCs(dt, t){
+  let alive=0;
+  for(const n of npcs){
+    if(!n.alive) continue; alive++;
+    // distance-based AI disabling
+    const d2 = dist2(n.mesh.position, player.pos);
+    if(d2 > 200*200) continue; // skip far AI for perf
+    // pick new wander target
+    if(dist2(n.mesh.position, n.target) < 4){
+      if(n.isCop && player.wanted>0){
+        n.target.set(player.pos.x + rand(-3,3), 0, player.pos.z + rand(-3,3));
+      } else {
+        n.target.set(n.mesh.position.x + rand(-25,25), 0, n.mesh.position.z + rand(-25,25));
+      }
+    }
+    let dx = n.target.x - n.mesh.position.x, dz = n.target.z - n.mesh.position.z;
+    const dm = Math.hypot(dx,dz)||1; dx/=dm; dz/=dm;
+    let speed = n.speed * (n.panic?2.2:1) * dt;
+    const nx = n.mesh.position.x + dx*speed, nz = n.mesh.position.z + dz*speed;
+    if(!collide(nx, n.mesh.position.z, 0.8)) n.mesh.position.x = nx;
+    if(!collide(n.mesh.position.x, nz, 0.8)) n.mesh.position.z = nz;
+    // swim if in river
+    if(isInRiver(n.mesh.position.x, n.mesh.position.z)){
+      n.mesh.position.y = 0.4 + Math.sin(t*5+n.walkT)*0.1;
+    } else {
+      n.mesh.position.y = 0;
+    }
+    // face direction
+    n.mesh.rotation.y = Math.atan2(dx,dz);
+    // walk anim
+    n.walkT += dt*8;
+    const sw = Math.sin(n.walkT)*0.4;
+    if(n.legL && n.legR){ n.legL.rotation.x = sw; n.legR.rotation.x = -sw; }
+    if(n.armL && n.armR){ n.armL.rotation.x = -sw; n.armR.rotation.x = sw; }
+    // swim anim
+    if(isInRiver(n.mesh.position.x,n.mesh.position.z) && n.armL){
+      n.armL.rotation.x = Math.sin(t*6)*1.2;
+      n.armR.rotation.x = Math.sin(t*6+Math.PI)*1.2;
+    }
+    // cop shoots/yells
+    if(n.isCop){
+      const dp = Math.sqrt(d2);
+      if(dp<6 && player.alive){
+        if(t-n.lastShout>1.2){ n.lastShout=t; sayPolice(); player.hp -= 8; flashRed(); }
+      } else if(dp<25 && t-n.lastShout>3){ n.lastShout=t; sayPolice(); }
+    } else {
+      if(Math.random()<0.0008) sayNPCTalk();
+    }
+    // day/night behavior: at night fewer NPCs roam
+    if(W.time<0.25 || W.time>0.8){ if(!n.isCop && Math.random()<0.0005) n.target.set(n.mesh.position.x, 0, n.mesh.position.z); }
+  }
+  // Wanted-based cop spawn
+  if(player.wanted>0){
+    const want = Math.min(8, player.wanted*2);
+    const cops = npcs.filter(n=>n.isCop && n.alive).length;
+    if(cops < want && Math.random()<0.02) spawnCop();
+    // Decay
+    player.wantedDecay += dt;
+    if(player.wantedDecay>15){ player.wantedDecay=0; player.wanted = Math.max(0, player.wanted-1); updateWanted(); }
+  }
+}
+
+// ---------- Vehicles AI ----------
+function updateVehicles(dt){
+  for(const v of vehicles){
+    if(!v.isAI) continue;
+    // simple: move forward, on collision turn
+    v.vel = THREE.MathUtils.lerp(v.vel, 6, dt);
+    const dir = new THREE.Vector3(0,0,1).applyEuler(new THREE.Euler(0,v.yaw,0));
+    const nx = v.mesh.position.x + dir.x*v.vel*dt;
+    const nz = v.mesh.position.z + dir.z*v.vel*dt;
+    // stay on road; if drifting off road, snap-yaw toward road
+    if(!isOnRoad(nx,nz, ROAD_HALF*1.2) || isInRiver(nx,nz) || collide(nx,nz,1.2)){
+      v.yaw += (Math.random()<0.5?1:-1)*Math.PI/2;
+      v.vel = 0;
+      v.mesh.rotation.y = v.yaw;
+    } else {
+      v.mesh.position.x = nx; v.mesh.position.z = nz;
+    }
+    // honk occasionally
+    if(Math.random()<0.0005) sayHorn();
+  }
+}
+
+// ---------- Bullets ----------
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.mesh.position.add(b.dir.clone().multiplyScalar(60*dt));
+    b.life -= dt;
+    if(b.life<=0){ scene.remove(b.mesh); bullets.splice(i,1); }
+  }
+}
+
+// ---------- Train ----------
+function updateTrain(dt){
+  if(!train) return;
+  train.position.x += 12*dt;
+  if(train.position.x > WORLD+30) train.position.x = -WORLD-30;
+}
+
+// ---------- Heal/ATM/Garage/Fuel ----------
+function checkSpots(){
+  for(const s of healSpots) if(Math.hypot(player.pos.x-s.x, player.pos.z-s.z)<s.r){
+    if(player.hp<100 && player.money>=20){ player.hp=Math.min(100,player.hp+1); if(Math.random()<0.05) player.money-=1; }
+  }
+  for(const s of atmSpots) if(Math.hypot(player.pos.x-s.x, player.pos.z-s.z)<s.r){
+    if(Math.random()<0.02){ player.money+=10; }
+  }
+  for(const s of garageSpots) if(player.inVehicle && Math.hypot(player.pos.x-s.x, player.pos.z-s.z)<s.r){
+    if(player.inVehicle.hp<100 && player.money>0){ player.inVehicle.hp = Math.min(100, player.inVehicle.hp+1); if(Math.random()<0.1) player.money-=1; }
+  }
+  for(const s of fuelSpots) if(player.inVehicle && Math.hypot(player.pos.x-s.x, player.pos.z-s.z)<s.r){
+    if(player.inVehicle.fuel<100 && player.money>0){ player.inVehicle.fuel=Math.min(100, player.inVehicle.fuel+0.5); if(Math.random()<0.05) player.money-=1; }
+  }
+}
+
+// ---------- Minimap ----------
+const mm = $('mm').getContext('2d');
+function drawMinimap(){
+  const W2 = 180, R = 90;
+  mm.clearRect(0,0,W2,W2);
+  mm.fillStyle = '#1a2a1a'; mm.fillRect(0,0,W2,W2);
+  // roads
+  mm.strokeStyle='#666'; mm.lineWidth=2;
+  for(const r of roads){
+    const ax = (r.x1-player.pos.x)*0.2 + R, az = (r.z1-player.pos.z)*0.2 + R;
+    const bx = (r.x2-player.pos.x)*0.2 + R, bz = (r.z2-player.pos.z)*0.2 + R;
+    mm.beginPath(); mm.moveTo(ax,az); mm.lineTo(bx,bz); mm.stroke();
+  }
+  // river
+  mm.fillStyle='#3070aa';
+  mm.fillRect(0, (RIVER_Z-player.pos.z)*0.2+R-RIVER_W*0.2, W2, RIVER_W*0.4);
+  // npcs
+  for(const n of npcs){
+    if(!n.alive) continue;
+    const x = (n.mesh.position.x-player.pos.x)*0.2+R, z = (n.mesh.position.z-player.pos.z)*0.2+R;
+    if(x<0||x>W2||z<0||z>W2) continue;
+    mm.fillStyle = n.isCop?'#3050ff':'#aaaaaa'; mm.fillRect(x-1,z-1,3,3);
+  }
+  // player
+  mm.fillStyle='#ffd24a'; mm.fillRect(R-2,R-2,5,5);
+}
+
+// ---------- FPS / dynamic scaling ----------
+let fpsAvg = 60, frames=0, fpsLast=performance.now();
+function fpsTick(){
+  frames++;
+  const now = performance.now();
+  if(now-fpsLast > 1000){
+    fpsAvg = frames*1000/(now-fpsLast); frames=0; fpsLast=now;
+    $('fps').textContent = fpsAvg.toFixed(0)+' fps';
+    // dynamic preset
+    if(Q.preset==='auto' || true){
+      if(fpsAvg<22 && Q.pixelRatio>0.5){
+        Q.pixelRatio = Math.max(0.5, Q.pixelRatio-0.1);
+        Q.drawDist = Math.max(120, Q.drawDist-20);
+        Q.npcMax = Math.max(6, Q.npcMax-2);
+        applyQuality();
+      } else if(fpsAvg>55 && Q.pixelRatio<1.25){
+        Q.pixelRatio = Math.min(1.25, Q.pixelRatio+0.05);
+        applyQuality();
+      }
+    }
+  }
+}
+
+// ---------- Auto-detect preset on first run ----------
+setTimeout(()=>{
+  // crude: low memory devices (deviceMemory) or small viewport => low
+  const dm = navigator.deviceMemory || 2;
+  if(dm<=2) setPreset('low');
+  else if(dm<=4) setPreset('med');
+  else setPreset('high');
+}, 200);
+
+// ---------- HUD update ----------
+function updateHUD(){
+  $('hp').textContent = Math.max(0,Math.floor(player.hp));
+  $('money').textContent = player.money;
+  $('ammo').textContent = player.ammo;
+  const h = Math.floor(W.time*24).toString().padStart(2,'0');
+  const m = Math.floor((W.time*24*60)%60).toString().padStart(2,'0');
+  $('time').textContent = h+':'+m;
+}
+
+// ---------- Main loop ----------
+let lastT = performance.now();
+function loop(){
+  const now = performance.now();
+  let dt = Math.min(0.05, (now-lastT)/1000);
+  lastT = now;
+  if(slowMo) dt *= 0.4;
+
+  updatePlayer(dt);
+  updateNPCs(dt, now/1000);
+  updateVehicles(dt);
+  updateBullets(dt);
+  updateTrain(dt);
+  updateSky(dt);
+  rainTick(dt);
+  checkSpots();
+  checkMission();
+  ambientTick(now/1000);
+  updateHUD();
+  drawMinimap();
+
+  if(player.hp<=0 && player.alive){
+    player.alive=false;
+    showMsg('You died. Respawn at home in 3s…', 3000);
+    setTimeout(()=>{ player.hp=100; player.money=Math.max(0,player.money-50); player.pos.copy(HOME_POS).setY(1.7); player.alive=true; player.wanted=0; updateWanted(); }, 3000);
+  }
+
+  renderer.render(scene, camera);
+  fpsTick();
+  requestAnimationFrame(loop);
+}
+
+// ---------- Start ----------
+loadGame();
+$('loading').style.display='none';
+showMsg('Welcome to WorldSim 3D v5. Tap to start. F2=Desktop. 📱 phone for menu.', 3500);
+loop();
+
+</script>
+</body>
+</html>
